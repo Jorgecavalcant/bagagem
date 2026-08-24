@@ -17,6 +17,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads:/app/uploads
     ports:
       - "8000:8000"
     depends_on:
@@ -32,3 +35,4 @@ services:
       - api
 volumes:
   pgdata:
+  uploads:
