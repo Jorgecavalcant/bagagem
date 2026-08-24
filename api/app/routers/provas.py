@@ -7,6 +7,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
+from app.auth import require_operador
 from app.config import get_settings
 from app.database import get_db
 from app.models import Prova
@@ -19,7 +20,11 @@ ALLOWED_STATUS = {"registrada", "conferida", "recusada"}
 
 
 @router.post("", response_model=ProvaOut, status_code=201)
-def criar_prova(payload: ProvaCreate, db: Session = Depends(get_db)):
+def criar_prova(
+    payload: ProvaCreate,
+    db: Session = Depends(get_db),
+    _user: str = Depends(require_operador),
+):
     foto_url = payload.foto_url
     foto_storage = None
     if payload.foto_base64:
@@ -47,6 +52,7 @@ async def upload_prova(
     notas: Optional[str] = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    _user: str = Depends(require_operador),
 ):
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="arquivo deve ser image/*")
@@ -64,7 +70,7 @@ async def upload_prova(
 
     prova = Prova(
         codigo=codigo.strip().upper(),
-        foto_url=f"/api/media/{filename}",
+        foto_url=f"/media/{filename}",
         notas=notas,
         tipo_vinculo=tipo_vinculo,
         foto_storage=filename,
@@ -113,7 +119,12 @@ def obter_prova(prova_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{prova_id}/status", response_model=ProvaOut)
-def atualizar_status(prova_id: int, payload: StatusUpdate, db: Session = Depends(get_db)):
+def atualizar_status(
+    prova_id: int,
+    payload: StatusUpdate,
+    db: Session = Depends(get_db),
+    _user: str = Depends(require_operador),
+):
     prova = db.get(Prova, prova_id)
     if not prova:
         raise HTTPException(status_code=404, detail="prova não encontrada")
