@@ -28,12 +28,25 @@ def test_prova_base64_salva(client):
     assert body["codigo"] == "ABC123"
     assert body["status"] == "registrada"
     assert body["tipo_vinculo"] == "etiqueta"
-    assert body["foto_url"].startswith("/media/")
+    assert body["foto_url"].startswith("/api/media/")
     assert body["foto_storage"]
+
+    media = client.get(body["foto_url"])
+    assert media.status_code == 200, media.text
+    assert media.content[:4] == b"\x89PNG"
 
     r2 = client.get("/api/v1/provas/por-codigo/ABC123")
     assert r2.status_code == 200
     assert r2.json()["id"] == body["id"]
+
+
+def test_foto_url_legado_media_normalizada(client):
+    r = client.post(
+        "/api/v1/provas",
+        json={"codigo": "LEGACY1", "foto_url": "/media/arquivo-antigo.png"},
+    )
+    assert r.status_code == 201
+    assert r.json()["foto_url"] == "/api/media/arquivo-antigo.png"
 
 
 def test_prova_sem_foto_rejeitada(client):

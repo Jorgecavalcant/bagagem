@@ -29,7 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# /media = SPEC; /api/media = mesma pasta, passa no reverse_proxy /api* do Caddy
 app.mount("/media", StaticFiles(directory=settings.upload_dir), name="media")
+app.mount("/api/media", StaticFiles(directory=settings.upload_dir), name="api_media")
 app.include_router(provas.router)
 app.include_router(payments.router)
 

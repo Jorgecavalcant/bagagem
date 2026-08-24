@@ -9,7 +9,7 @@
 - `GET /api/v1/provas/por-codigo/{codigo}` — última prova do código
 - `PATCH /api/v1/provas/{id}/status` — registrada|conferida|recusada
 - `GET /api/v1/payments/providers` · `POST /api/v1/payments/charge` (ManualProvider)
-- Static `/media` → upload_dir
+- Static `/media` e `/api/media` → upload_dir (público preferir `/api/media` — Caddy `/api*`)
 
 ## Web
 - `/` landing

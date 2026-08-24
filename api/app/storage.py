@@ -28,4 +28,5 @@ def save_base64_image(data_b64: str) -> Tuple[str, str]:
     path = os.path.join(settings.upload_dir, filename)
     with open(path, "wb") as f:
         f.write(raw)
-    return f"/media/{filename}", filename
+    # Público via /api/media (Caddy já faz proxy de /api*); /media também montado na API
+    return f"/api/media/{filename}", filename

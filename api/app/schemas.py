@@ -33,6 +33,13 @@ class ProvaOut(BaseModel):
     class Config:
         from_attributes = True
 
+    @model_validator(mode="after")
+    def foto_url_publica(self):
+        # Legado /media/* → /api/media/* (alcançável pelo Caddy handle /api*)
+        if self.foto_url and self.foto_url.startswith("/media/"):
+            self.foto_url = "/api" + self.foto_url
+        return self
+
 
 class StatusUpdate(BaseModel):
     status: Literal["registrada", "conferida", "recusada"]

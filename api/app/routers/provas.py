@@ -64,7 +64,7 @@ async def upload_prova(
 
     prova = Prova(
         codigo=codigo.strip().upper(),
-        foto_url=f"/media/{filename}",
+        foto_url=f"/api/media/{filename}",
         notas=notas,
         tipo_vinculo=tipo_vinculo,
         foto_storage=filename,
