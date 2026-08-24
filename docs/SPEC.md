@@ -1,4 +1,4 @@
-# SPEC — Bagagem MVP (ox-alpha)
+# SPEC — Bagagem MVP
 
 ## API
 - `GET /health` — `{status, produto: bagagem}`
