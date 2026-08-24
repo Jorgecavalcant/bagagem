@@ -1,14 +1,16 @@
-import Link from "next/link";
 export default function Home() {
   return (
-    <main>
-      <p>Tech42</p>
+    <main style={{ maxWidth: 480, margin: "4rem auto", fontFamily: "sans-serif" }}>
       <h1>Bagagem</h1>
-      <p>Foto + bilhete/etiqueta. Sem API de companhia no MVP.</p>
-      <p>
-        <Link href="/registrar">Registrar prova</Link> · <Link href="/painel">Painel</Link>
-      </p>
-      <p style={{ opacity: 0.7 }}>Domínio: bagagem.tech42.com.br</p>
+      <p>Prova de bagagem: foto + bilhete/etiqueta + painel.</p>
+      <ul>
+        <li>
+          <a href="/registrar">Registrar prova</a>
+        </li>
+        <li>
+          <a href="/painel">Painel</a>
+        </li>
+      </ul>
     </main>
   );
 }

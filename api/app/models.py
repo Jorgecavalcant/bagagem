@@ -1,14 +1,22 @@
-from __future__ import annotations
-from datetime import datetime
-from typing import Optional
-from sqlalchemy import DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
+
 from app.database import Base
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
 
 class Prova(Base):
     __tablename__ = "provas"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    codigo: Mapped[str] = mapped_column(String(80), index=True)  # bilhete ou etiqueta
-    foto_url: Mapped[str] = mapped_column(String(500))
-    notas: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    id = Column(Integer, primary_key=True)
+    codigo = Column(String(64), nullable=False, index=True)
+    foto_url = Column(String(512), nullable=True)
+    notas = Column(Text, nullable=True)
+    tipo_vinculo = Column(String(16), nullable=False, default="bilhete")  # bilhete|etiqueta
+    status = Column(String(16), nullable=False, default="registrada")  # registrada|conferida|recusada
+    foto_storage = Column(String(512), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_utcnow)
