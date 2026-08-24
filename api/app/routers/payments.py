@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import require_operador
 from app.payments.manual import PROVIDERS
 from app.schemas import ChargeRequest, ChargeResponse
 
@@ -12,7 +13,7 @@ def listar_providers():
 
 
 @router.post("/charge", response_model=ChargeResponse)
-def criar_charge(payload: ChargeRequest):
+def criar_charge(payload: ChargeRequest, _user: str = Depends(require_operador)):
     provider = PROVIDERS.get(payload.provider)
     if not provider:
         raise HTTPException(status_code=400, detail="provider desconhecido")

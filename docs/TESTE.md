@@ -5,7 +5,9 @@
 
 ## Login
 
-**Sem login** — endpoints de prova abertos nesta demo.
+Demo via `POST /api/v1/auth/demo` (usuário/senha dos envs `DEMO_USER` / `DEMO_PASS`; defaults locais no Settings).  
+O front faz login automático (`ensureAuth`) e envia Bearer nas mutações.  
+Leitura (listar / por-código / obter / providers) fica aberta.
 
 ## Seed
 
