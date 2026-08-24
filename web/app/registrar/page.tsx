@@ -1,7 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { apiSend } from "../../lib/api";
+
+function humanError(err: unknown): string {
+  const raw = String(err);
+  if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) {
+    return "Não conseguimos enviar a prova. Verifique a conexão e tente de novo.";
+  }
+  if (raw.includes("422") || raw.toLowerCase().includes("validation")) {
+    return "Alguns dados não puderam ser aceitos. Revise o código e a foto.";
+  }
+  return "Não foi possível registrar a prova agora. Tente novamente em instantes.";
+}
 
 export default function Registrar() {
   const [codigo, setCodigo] = useState("");
@@ -23,9 +35,14 @@ export default function Registrar() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
-    if (!codigo.trim()) return setErro("Informe o código.");
-    if (!fotoBase64 && !fotoUrl.trim())
-      return setErro("Envie uma foto ou informe a URL.");
+    if (!codigo.trim()) {
+      setErro("Informe o código do bilhete ou da etiqueta.");
+      return;
+    }
+    if (!fotoBase64 && !fotoUrl.trim()) {
+      setErro("Envie uma foto ou informe a URL da imagem.");
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -38,52 +55,119 @@ export default function Registrar() {
       });
       window.location.href = "/painel";
     } catch (err) {
-      setErro(String(err));
+      setErro(humanError(err));
     } finally {
       setEnviando(false);
     }
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "2rem auto", fontFamily: "sans-serif" }}>
-      <h1>Registrar prova de bagagem</h1>
-      <form onSubmit={submit}>
-        <p>
-          <label>Código</label>
-          <br />
-          <input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="ABC123" />
-        </p>
-        <p>
-          <label>Vínculo</label>
-          <br />
-          <select value={tipoVinculo} onChange={(e) => setTipoVinculo(e.target.value)}>
-            <option value="bilhete">Bilhete</option>
-            <option value="etiqueta">Etiqueta</option>
-          </select>
-        </p>
-        <p>
-          <label>Foto (arquivo)</label>
-          <br />
-          <input type="file" accept="image/*" onChange={onFile} />
-        </p>
-        <p>
-          <label>Ou URL da foto</label>
-          <br />
-          <input value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="https://..." />
-        </p>
-        <p>
-          <label>Notas</label>
-          <br />
-          <textarea value={notas} onChange={(e) => setNotas(e.target.value)} />
-        </p>
-        {erro && <p style={{ color: "red" }}>{erro}</p>}
-        <button type="submit" disabled={enviando}>
-          {enviando ? "Enviando..." : "Registrar"}
-        </button>
-      </form>
-      <p>
-        <a href="/">← Início</a> · <a href="/painel">Painel</a>
+    <main className="site-main site-main--narrow">
+      <h1>Registrar prova</h1>
+      <p className="lead">
+        A foto fica vinculada ao código do bilhete ou da etiqueta — um registro
+        documental para conferência.
       </p>
+
+      <form className="receipt" onSubmit={submit} noValidate>
+        <div className="field">
+          <label htmlFor="codigo">
+            <span className="label-caps">Código</span>
+            <input
+              id="codigo"
+              name="codigo"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              placeholder="ABC123"
+              autoComplete="off"
+              required
+            />
+          </label>
+          <p className="field__hint">Código impresso no bilhete ou na etiqueta.</p>
+        </div>
+
+        <div className="field">
+          <label htmlFor="vinculo">
+            <span className="label-caps">Vínculo</span>
+            <select
+              id="vinculo"
+              name="tipo_vinculo"
+              value={tipoVinculo}
+              onChange={(e) => setTipoVinculo(e.target.value)}
+            >
+              <option value="bilhete">Bilhete</option>
+              <option value="etiqueta">Etiqueta</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="field">
+          <label htmlFor="foto">
+            <span className="label-caps">Foto (arquivo)</span>
+            <input
+              id="foto"
+              name="foto"
+              type="file"
+              accept="image/*"
+              onChange={onFile}
+            />
+          </label>
+          {fotoBase64 && (
+            <div className="preview">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={fotoBase64} alt="Pré-visualização da prova" />
+            </div>
+          )}
+        </div>
+
+        <div className="field">
+          <label htmlFor="fotoUrl">
+            <span className="label-caps">Ou URL da foto</span>
+            <input
+              id="fotoUrl"
+              name="foto_url"
+              type="url"
+              value={fotoUrl}
+              onChange={(e) => setFotoUrl(e.target.value)}
+              placeholder="https://…"
+              disabled={!!fotoBase64}
+            />
+          </label>
+          {fotoBase64 && (
+            <p className="field__hint">
+              Arquivo selecionado — a URL não será usada neste envio.
+            </p>
+          )}
+        </div>
+
+        <div className="field">
+          <label htmlFor="notas">
+            <span className="label-caps">Notas (opcional)</span>
+            <textarea
+              id="notas"
+              name="notas"
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              rows={3}
+            />
+          </label>
+        </div>
+
+        {erro && (
+          <div className="alert alert--error" role="alert">
+            {erro}
+          </div>
+        )}
+
+        <div className="cta-row">
+          <button type="submit" className="btn btn--primary" disabled={enviando}>
+            {enviando ? "Enviando prova…" : "Registrar prova"}
+          </button>
+          <Link href="/painel" className="btn btn--ghost">
+            Ir ao painel
+          </Link>
+        </div>
+      </form>
     </main>
   );
 }
