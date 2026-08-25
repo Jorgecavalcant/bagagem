@@ -15,7 +15,7 @@ export default function Home() {
             Registrar prova
           </Link>
           <Link href="/painel" className="btn btn--secondary">
-            Ver painel
+            Área do operador
           </Link>
         </div>
       </section>
@@ -29,7 +29,7 @@ export default function Home() {
           <li style={{ marginBottom: "0.5rem" }}>
             Envie a foto da bagagem ou carga.
           </li>
-          <li>No painel, confira ou recuse a prova.</li>
+          <li>No painel, o operador confere ou recusa a prova.</li>
         </ol>
       </aside>
     </main>

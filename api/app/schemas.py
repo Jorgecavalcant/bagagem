@@ -20,6 +20,12 @@ class ProvaCreate(BaseModel):
         return self
 
 
+class ProvaUpdate(BaseModel):
+    codigo: Optional[str] = None
+    tipo_vinculo: Optional[Literal["bilhete", "etiqueta"]] = None
+    notas: Optional[str] = None
+
+
 class ProvaOut(BaseModel):
     id: int
     codigo: str
@@ -43,6 +49,15 @@ class ProvaOut(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: Literal["registrada", "conferida", "recusada"]
+
+
+class ResumoDiaOut(BaseModel):
+    dia: str
+    timezone: str = "America/Sao_Paulo"
+    registradas: int
+    conferidas: int
+    recusadas: int
+    total: int
 
 
 class ChargeRequest(BaseModel):

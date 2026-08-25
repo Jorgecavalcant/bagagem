@@ -129,3 +129,88 @@ def test_payments_manual(client, auth_headers):
     assert body["provider"] == "manual"
     assert body["amount"] == 19.9
     assert "manual" in body["instructions"] or "transferência" in body["instructions"]
+
+
+def test_patch_prova_campos(client, auth_headers):
+    r = client.post(
+        "/api/v1/provas",
+        headers=auth_headers,
+        json={"codigo": "OLD123", "foto_url": "https://x/o.png", "notas": "a"},
+    )
+    assert r.status_code == 201
+    pid = r.json()["id"]
+
+    r = client.patch(
+        f"/api/v1/provas/{pid}",
+        headers=auth_headers,
+        json={"codigo": "new456", "tipo_vinculo": "etiqueta", "notas": "caixa"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["codigo"] == "NEW456"
+    assert body["tipo_vinculo"] == "etiqueta"
+    assert body["notas"] == "caixa"
+    assert body["status"] == "registrada"
+
+    r = client.patch(f"/api/v1/provas/{pid}", json={"codigo": "X"})
+    assert r.status_code == 401
+
+
+def test_delete_prova(client, auth_headers):
+    r = client.post(
+        "/api/v1/provas",
+        headers=auth_headers,
+        json={
+            "codigo": "DEL1",
+            "foto_base64": f"data:image/png;base64,{PNG_B64}",
+        },
+    )
+    assert r.status_code == 201
+    pid = r.json()["id"]
+    storage = r.json()["foto_storage"]
+    assert storage
+
+    import os
+    from app.config import get_settings
+
+    path = os.path.join(get_settings().upload_dir, storage)
+    assert os.path.isfile(path)
+
+    r = client.delete(f"/api/v1/provas/{pid}")
+    assert r.status_code == 401
+
+    r = client.delete(f"/api/v1/provas/{pid}", headers=auth_headers)
+    assert r.status_code == 204
+    assert not os.path.isfile(path)
+
+    r = client.get(f"/api/v1/provas/{pid}")
+    assert r.status_code == 404
+
+
+def test_resumo_dia(client, auth_headers):
+    r = client.post(
+        "/api/v1/provas",
+        headers=auth_headers,
+        json={"codigo": "RES1", "foto_url": "https://x/r.png"},
+    )
+    pid = r.json()["id"]
+    client.patch(
+        f"/api/v1/provas/{pid}/status",
+        headers=auth_headers,
+        json={"status": "conferida"},
+    )
+    client.post(
+        "/api/v1/provas",
+        headers=auth_headers,
+        json={"codigo": "RES2", "foto_url": "https://x/r2.png"},
+    )
+
+    r = client.get("/api/v1/provas/resumo")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["timezone"] == "America/Sao_Paulo"
+    assert "dia" in body
+    assert body["total"] >= 2
+    assert body["conferidas"] >= 1
+    assert body["registradas"] >= 1
+    assert body["recusadas"] >= 0

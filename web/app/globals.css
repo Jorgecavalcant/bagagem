@@ -1,21 +1,45 @@
 :root {
-  --bg: #f3eee6;
-  --surface: #fffbf5;
-  --ink: #1a2744;
-  --muted: #5c6578;
-  --line: #d9d1c4;
-  --accent: #c47b3a;
-  --accent-hover: #a8662e;
-  --ok: #2f6b4f;
-  --danger: #a63d3d;
-  --shadow: 0 1px 2px rgba(26, 39, 68, 0.06), 0 8px 24px rgba(26, 39, 68, 0.06);
-  --radius: 6px;
-  --radius-btn: 4px;
-  --space: 8px;
+  /* Brand System Designer v2.0 — papel frio + navy + carimbo */
+  --color-bg: #eef0f4;
+  --color-surface: #f8f9fc;
+  --color-brand: #1f2a3c;
+  --color-accent: #b93a3a;
+  --color-accent-hover: #c94a4a;
+  --color-text: #1f2a3c;
+  --color-muted: #5c6678;
+  --color-on-brand: #eef0f4;
+  --color-border: #d0d5de;
+  --color-success: #2a7a4b;
+  --color-error: #b42318;
+  --color-disabled: #9aa3b0;
+  --color-ring: #1f2a3c;
+  --color-on-accent: #ffffff;
+
   --font-display: "Libre Baskerville", Georgia, "Times New Roman", serif;
   --font-ui: "Outfit", system-ui, -apple-system, sans-serif;
+  --space-unit: 8px;
+  --radius-control: 10px;
+  --radius-surface: 12px;
+  --shadow-soft: 0 4px 14px rgba(31, 42, 60, 0.08);
+  --max-width: 960px;
+  --touch-min: 44px;
+
+  /* Alias (componentes existentes) */
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --ink: var(--color-text);
+  --muted: var(--color-muted);
+  --line: var(--color-border);
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --ok: var(--color-success);
+  --danger: var(--color-error);
+  --shadow: var(--shadow-soft);
+  --radius: var(--radius-control);
+  --radius-btn: var(--radius-control);
+  --space: var(--space-unit);
   --max-form: 720px;
-  --max-panel: 960px;
+  --max-panel: var(--max-width);
 }
 
 *,
@@ -37,8 +61,8 @@ body {
   color: var(--ink);
   background-color: var(--bg);
   background-image:
-    radial-gradient(ellipse 900px 420px at 8% -8%, rgba(196, 123, 58, 0.07), transparent 55%),
-    radial-gradient(ellipse 700px 380px at 92% 0%, rgba(26, 39, 68, 0.05), transparent 50%),
+    radial-gradient(ellipse 900px 420px at 8% -8%, rgba(31, 42, 60, 0.06), transparent 55%),
+    radial-gradient(ellipse 700px 380px at 92% 0%, rgba(185, 58, 58, 0.05), transparent 50%),
     url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -56,13 +80,13 @@ a:focus-visible {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }
 
 .site-header {
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 251, 245, 0.92);
+  background: rgba(248, 249, 252, 0.92);
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
@@ -147,7 +171,7 @@ a:focus-visible {
   text-align: center;
   color: var(--muted);
   font-size: 0.875rem;
-  background: rgba(255, 251, 245, 0.6);
+  background: rgba(248, 249, 252, 0.75);
 }
 
 h1,
@@ -192,12 +216,12 @@ h1 {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--color-brand);
   margin-bottom: calc(var(--space) * 2);
   padding: 4px 10px;
-  border: 1px solid rgba(196, 123, 58, 0.35);
-  border-radius: 999px;
-  background: rgba(196, 123, 58, 0.08);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
 }
 
 .cta-row {
@@ -235,14 +259,14 @@ h1 {
 
 .btn--primary {
   background: var(--accent);
-  color: #fffbf5;
+  color: var(--color-on-accent);
   border-color: var(--accent);
 }
 
 .btn--primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  color: #fffbf5;
+  color: var(--color-on-accent);
 }
 
 .btn--secondary {
@@ -328,7 +352,7 @@ h1 {
 .field select:focus,
 .field textarea:focus {
   border-color: var(--accent);
-  outline: 2px solid rgba(196, 123, 58, 0.25);
+  outline: 2px solid rgba(31, 42, 60, 0.25);
   outline-offset: 0;
 }
 
