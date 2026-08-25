@@ -1,17 +1,29 @@
 # Como testar — Bagagem (Salto UX 2026-08)
 
-**URL:** https://bagagem.tech42.com.br  
-**Local:** `make up` → http://localhost:3000 · API http://localhost:8000/docs
+**URL prod:** https://bagagem.tech42.com.br *(pode estar no build antigo — ver nota no fim)*  
+**Local (esta missão):** web http://127.0.0.1:3004 · API http://127.0.0.1:8004/docs  
+**Local compose:** `make up` → http://localhost:3000 · API http://localhost:8000/docs
 
 ## Login (explícito)
 
-Demo via `POST /api/v1/auth/demo` (usuário/senha dos envs `DEMO_USER` / `DEMO_PASS`).  
-**Não há auto-login.** O token só é gravado em `sessionStorage.bagagem_token` após submit do formulário em `/painel` ou no login curto de `/registrar`.  
-Botão **Sair** limpa o token. Leitura (listar / por-código / obter / resumo / providers) permanece aberta.
+Credenciais demo: `demo` / `demo123` (`DEMO_USER` / `DEMO_PASS`).
+
+Rotas de autenticação e gestão:
+
+| Rota | Uso |
+|:---|:---|
+| `/login` | Login dedicado → redireciona para `/painel` (ou `?next=`) |
+| `/painel` | Operador: também aceita login inline |
+| `/registrar` | Passageiro: login curto se precisar mutar |
+| `/dashboard` | Resumo do dia (exige token) |
+| `/settings` | Ajustes locais do ponto (exige token) |
+
+**Não há auto-login.** Token em `sessionStorage.bagagem_token` só após submit.  
+Botão **Sair** limpa o token. Leituras abertas: listar / por-código / obter / resumo / providers.
 
 ## Contagem do dia
 
-`GET /api/v1/provas/resumo` — timezone **America/Sao_Paulo** (dia civil em SP, mesmo com `created_at` em UTC).
+`GET /api/v1/provas/resumo` — timezone **America/Sao_Paulo**. Também visível em `/dashboard`.
 
 ## Seed
 
@@ -19,12 +31,14 @@ Não precisa. Crie a prova pela tela (foto obrigatória).
 
 ## Fluxo feliz
 
-1. Abra https://bagagem.tech42.com.br/ → **Registrar prova** (passageiro) ou **Área do operador**.
-2. Em `/registrar`: login curto → foto + bilhete/etiqueta → confirma.
-3. Em `/painel`: login → ver contadores do dia, thumbs reais, Conferir/Recusar, **Editar** / **Excluir**, **Copiar link** (`/registrar?codigo=`).
-4. Deep-link: abra o link copiado — o campo código vem pré-preenchido.
-5. Thumb quebrada mostra “imagem indisponível” (sem placeholder falso).
-6. Pagamento (se houver): **manual/demo**. Sem API de companhia aérea nesta fase.
+1. Abra `/` → **Registrar prova** ou **Área do operador** (ou `/login`).
+2. Em `/login` (ou login no painel): `demo` / `demo123`.
+3. Em `/registrar`: foto + bilhete/etiqueta → confirma.
+4. Em `/painel`: contadores, thumbs, Conferir/Recusar, **Editar** / **Excluir**, **Copiar link** (`/registrar?codigo=`).
+5. Deep-link: abra o link copiado — o campo código vem pré-preenchido.
+6. `/dashboard` e `/settings` para visão gerencial e ajustes.
+7. Thumb quebrada mostra “imagem indisponível”.
+8. Alternar **Claro/Escuro** (botão fixo).
 
 ## Testes API
 
@@ -32,15 +46,8 @@ Não precisa. Crie a prova pela tela (foto obrigatória).
 cd api && PYTHONPATH=. pytest -q
 ```
 
-Cobre auth, PATCH de campos, DELETE (+ remoção de mídia), resumo do dia.
-
-## Nota de build
-
-Se a API falhar no browser após deploy antigo, o front precisa ter sido buildado com `NEXT_PUBLIC_API_URL=https://bagagem.tech42.com.br` (Dockerfile com `ARG`/`ENV`).
-
-
 ## Ambiente nesta entrega (2026-08-25)
 
-- **GitHub `main` (após merge desta PR):** rotas Salto UX + light/dark + gaps desta missão.
-- **Produção `*.tech42.com.br`:** ainda pode estar no build antigo enquanto secrets `VPS_HOST`/`VPS_USER`/`VPS_SSH_KEY` não estiverem no GitHub Actions. Sem esses secrets o CD não atualiza a VPS.
-- **Como testar agora sem Docker Desktop:** na pasta do produto, API com venv (`make test` valida API) e `cd web && npm run dev` (aponta `NEXT_PUBLIC_API_URL` se a API não estiver em :8000).
+- **GitHub `main`:** rotas Salto UX + `/login` `/settings` `/dashboard` + light/dark.
+- **Produção `*.tech42.com.br`:** build antigo até secrets `VPS_HOST`/`VPS_USER`/`VPS_SSH_KEY` no GitHub Actions.
+- **Sem Docker Desktop:** API com venv + `cd web && NEXT_PUBLIC_API_URL=http://127.0.0.1:8004 npm run dev -- -p 3004`.
