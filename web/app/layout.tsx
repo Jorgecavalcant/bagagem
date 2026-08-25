@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ThemeToggle from "./components/ThemeToggle";
+import PontoNomeBadge from "./components/PontoNomeBadge";
+import SiteFooter from "./components/SiteFooter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -40,6 +42,7 @@ export default function RootLayout({
               </span>
               <span className="brand__name">Bagagem</span>
             </Link>
+            <PontoNomeBadge />
             <nav className="nav" aria-label="Principal">
               <Link href="/">Início</Link>
               <Link href="/registrar">Registrar</Link>
@@ -51,9 +54,7 @@ export default function RootLayout({
           </div>
         </header>
         {children}
-        <footer className="site-footer">
-          Prova de viagem · etiqueta de confiança · Tech42
-        </footer>
+        <SiteFooter />
         <ThemeToggle />
       </body>
     </html>

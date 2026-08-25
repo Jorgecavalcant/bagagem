@@ -74,6 +74,8 @@ export default function DashboardPage() {
     { titulo: "Total", valor: resumo.total },
   ];
 
+  const pendentes = resumo.registradas;
+
   return (
     <main className="site-main">
       <section className="hero">
@@ -82,6 +84,19 @@ export default function DashboardPage() {
           Resumo de {resumo.dia} ({resumo.timezone})
         </p>
       </section>
+
+      <div className="receipt" style={{ marginBottom: "1.5rem" }}>
+        <p style={{ margin: 0 }}>
+          {pendentes > 0
+            ? `Há ${pendentes} prova${pendentes > 1 ? "s" : ""} registrada${
+                pendentes > 1 ? "s" : ""
+              } aguardando conferência.`
+            : "Nenhuma prova pendente de conferência agora."}
+        </p>
+        <Link href="/painel" className="btn btn--primary" style={{ marginTop: "0.75rem" }}>
+          Conferir pendentes
+        </Link>
+      </div>
 
       <div className="receipt">
         {cards.map((c) => (

@@ -52,6 +52,10 @@ type EditState = {
   notas: string;
 };
 
+function resolveFotoSrc(fotoUrl: string): string {
+  return /^https?:\/\//i.test(fotoUrl) ? fotoUrl : `${API_URL}${fotoUrl}`;
+}
+
 function Thumb({ fotoUrl, codigo }: { fotoUrl: string | null; codigo: string }) {
   const [falhou, setFalhou] = useState(false);
   if (!fotoUrl || falhou) {
@@ -61,7 +65,7 @@ function Thumb({ fotoUrl, codigo }: { fotoUrl: string | null; codigo: string }) 
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className="thumb"
-      src={`${API_URL}${fotoUrl}`}
+      src={resolveFotoSrc(fotoUrl)}
       alt={`Prova fotográfica do código ${codigo}`}
       onError={() => setFalhou(true)}
     />
@@ -164,11 +168,39 @@ export default function Painel() {
     }
   }
 
-  function copiarLink(p: Prova) {
+  function copiarComFallback(texto: string): boolean {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = texto;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async function copiarLink(p: Prova) {
     const url = `${window.location.origin}/registrar?codigo=${encodeURIComponent(p.codigo)}`;
-    void navigator.clipboard.writeText(url);
-    setCopiado(p.id);
-    setTimeout(() => setCopiado(null), 2000);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else if (!copiarComFallback(url)) {
+        throw new Error("clipboard indisponível");
+      }
+      setErro(null);
+      setCopiado(p.id);
+      setTimeout(() => setCopiado(null), 2000);
+    } catch {
+      setErro(
+        `Não conseguimos copiar o link automaticamente. Copie manualmente: ${url}`
+      );
+    }
   }
 
   if (!token) {
