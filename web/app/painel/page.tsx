@@ -2,10 +2,23 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { API_URL, Prova, apiGet, apiSend } from "../../lib/api";
+import {
+  API_URL,
+  Prova,
+  ResumoDia,
+  apiDelete,
+  apiGet,
+  apiSend,
+  getToken,
+  login,
+  logout,
+} from "../../lib/api";
 
 function humanError(err: unknown): string {
   const raw = String(err);
+  if (raw.includes("Faça login") || raw.includes("401")) {
+    return "Faça login para continuar.";
+  }
   if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) {
     return "Não conseguimos carregar as provas. Verifique a conexão e tente de novo.";
   }
@@ -32,11 +45,46 @@ function formatWhen(iso: string): string {
   }
 }
 
+type EditState = {
+  id: number;
+  codigo: string;
+  tipo_vinculo: string;
+  notas: string;
+};
+
+function Thumb({ fotoUrl, codigo }: { fotoUrl: string | null; codigo: string }) {
+  const [falhou, setFalhou] = useState(false);
+  if (!fotoUrl || falhou) {
+    return <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>imagem indisponível</span>;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className="thumb"
+      src={`${API_URL}${fotoUrl}`}
+      alt={`Prova fotográfica do código ${codigo}`}
+      onError={() => setFalhou(true)}
+    />
+  );
+}
+
 export default function Painel() {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState("");
+  const [pass, setPass] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+
   const [provas, setProvas] = useState<Prova[]>([]);
+  const [resumo, setResumo] = useState<ResumoDia | null>(null);
   const [filtroCodigo, setFiltroCodigo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [editing, setEditing] = useState<EditState | null>(null);
+  const [copiado, setCopiado] = useState<number | null>(null);
+
+  useEffect(() => {
+    setToken(getToken());
+  }, []);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -44,7 +92,12 @@ export default function Painel() {
       const qs = filtroCodigo
         ? `?codigo=${encodeURIComponent(filtroCodigo)}`
         : "";
-      setProvas(await apiGet<Prova[]>(`/api/v1/provas${qs}`));
+      const [lista, res] = await Promise.all([
+        apiGet<Prova[]>(`/api/v1/provas${qs}`),
+        apiGet<ResumoDia>("/api/v1/provas/resumo"),
+      ]);
+      setProvas(lista);
+      setResumo(res);
       setErro(null);
     } catch (e) {
       setErro(humanError(e));
@@ -54,24 +107,157 @@ export default function Painel() {
   }, [filtroCodigo]);
 
   useEffect(() => {
-    carregar();
-  }, [carregar]);
+    if (token) carregar();
+  }, [carregar, token]);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoginError(null);
+    try {
+      await login(user.trim(), pass);
+      setToken(getToken());
+      setPass("");
+    } catch {
+      setLoginError("Usuário ou senha inválidos.");
+    }
+  }
+
+  function handleLogout() {
+    logout();
+    setToken(null);
+    setProvas([]);
+    setResumo(null);
+  }
 
   async function mudarStatus(id: number, status: string) {
     try {
       await apiSend(`/api/v1/provas/${id}/status`, "PATCH", { status });
-      carregar();
+      await carregar();
     } catch (e) {
       setErro(humanError(e));
     }
   }
 
+  async function salvarEdicao(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    try {
+      await apiSend(`/api/v1/provas/${editing.id}`, "PATCH", {
+        codigo: editing.codigo,
+        tipo_vinculo: editing.tipo_vinculo,
+        notas: editing.notas || null,
+      });
+      setEditing(null);
+      await carregar();
+    } catch (err) {
+      setErro(humanError(err));
+    }
+  }
+
+  async function excluir(p: Prova) {
+    if (!confirm(`Excluir prova ${p.codigo}? A foto também será removida.`)) return;
+    try {
+      await apiDelete(`/api/v1/provas/${p.id}`);
+      await carregar();
+    } catch (err) {
+      setErro(humanError(err));
+    }
+  }
+
+  function copiarLink(p: Prova) {
+    const url = `${window.location.origin}/registrar?codigo=${encodeURIComponent(p.codigo)}`;
+    void navigator.clipboard.writeText(url);
+    setCopiado(p.id);
+    setTimeout(() => setCopiado(null), 2000);
+  }
+
+  if (!token) {
+    return (
+      <main className="site-main site-main--narrow">
+        <h1>Área do operador</h1>
+        <p className="lead">
+          Entre com usuário e senha para conferir, editar e excluir provas.
+          Não há login automático.
+        </p>
+        <form className="receipt" onSubmit={handleLogin}>
+          <div className="field">
+            <label htmlFor="user">
+              <span className="label-caps">Usuário</span>
+              <input
+                id="user"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </label>
+          </div>
+          <div className="field">
+            <label htmlFor="pass">
+              <span className="label-caps">Senha</span>
+              <input
+                id="pass"
+                type="password"
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </label>
+          </div>
+          {loginError && (
+            <div className="alert alert--error" role="alert">
+              {loginError}
+            </div>
+          )}
+          <div className="cta-row">
+            <button type="submit" className="btn btn--primary">
+              Entrar
+            </button>
+            <Link href="/" className="btn btn--ghost">
+              Voltar
+            </Link>
+          </div>
+        </form>
+      </main>
+    );
+  }
+
   return (
     <main className="site-main">
-      <h1>Painel de provas</h1>
-      <p className="lead">
-        Filtre por código, confira ou recuse. Uma ação clara por prova.
-      </p>
+      <div className="toolbar" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ marginBottom: "0.25rem" }}>Painel de provas</h1>
+          <p className="lead" style={{ marginBottom: 0 }}>
+            Contagem do dia, conferência e manutenção dos registros.
+          </p>
+        </div>
+        <button type="button" className="btn btn--secondary" onClick={handleLogout}>
+          Sair
+        </button>
+      </div>
+
+      {resumo && (
+        <div className="receipt" style={{ marginBottom: "1.5rem" }} aria-label="Contagem do dia">
+          <p className="label-caps">
+            Contagem de {resumo.dia} · {resumo.timezone}
+          </p>
+          <div className="cta-row" style={{ gap: "1.5rem" }}>
+            <span>
+              Registradas: <strong>{resumo.registradas}</strong>
+            </span>
+            <span>
+              Conferidas: <strong>{resumo.conferidas}</strong>
+            </span>
+            <span>
+              Recusadas: <strong>{resumo.recusadas}</strong>
+            </span>
+            <span>
+              Total: <strong>{resumo.total}</strong>
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="toolbar">
         <div className="field">
@@ -138,16 +324,7 @@ export default function Painel() {
                     <span className={badgeClass(p.status)}>{p.status}</span>
                   </td>
                   <td>
-                    {p.foto_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        className="thumb"
-                        src={`${API_URL}${p.foto_url}`}
-                        alt={`Prova fotográfica do código ${p.codigo}`}
-                      />
-                    ) : (
-                      <span style={{ color: "var(--muted)" }}>—</span>
-                    )}
+                    <Thumb fotoUrl={p.foto_url} codigo={p.codigo} />
                   </td>
                   <td>{formatWhen(p.created_at)}</td>
                   <td>
@@ -168,6 +345,34 @@ export default function Painel() {
                       >
                         Recusar
                       </button>
+                      <button
+                        type="button"
+                        className="btn btn--sm btn--secondary"
+                        onClick={() =>
+                          setEditing({
+                            id: p.id,
+                            codigo: p.codigo,
+                            tipo_vinculo: p.tipo_vinculo,
+                            notas: p.notas ?? "",
+                          })
+                        }
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--sm btn--danger"
+                        onClick={() => excluir(p)}
+                      >
+                        Excluir
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--sm btn--ghost"
+                        onClick={() => copiarLink(p)}
+                      >
+                        {copiado === p.id ? "Copiado!" : "Copiar link"}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -175,6 +380,59 @@ export default function Painel() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {editing && (
+        <form className="receipt" onSubmit={salvarEdicao} style={{ marginTop: "1.5rem" }}>
+          <h2>Editar prova #{editing.id}</h2>
+          <div className="field">
+            <label htmlFor="edit-codigo">
+              <span className="label-caps">Código</span>
+              <input
+                id="edit-codigo"
+                value={editing.codigo}
+                onChange={(e) => setEditing({ ...editing, codigo: e.target.value })}
+                required
+              />
+            </label>
+          </div>
+          <div className="field">
+            <label htmlFor="edit-vinculo">
+              <span className="label-caps">Vínculo</span>
+              <select
+                id="edit-vinculo"
+                value={editing.tipo_vinculo}
+                onChange={(e) => setEditing({ ...editing, tipo_vinculo: e.target.value })}
+              >
+                <option value="bilhete">Bilhete</option>
+                <option value="etiqueta">Etiqueta</option>
+              </select>
+            </label>
+          </div>
+          <div className="field">
+            <label htmlFor="edit-notas">
+              <span className="label-caps">Notas</span>
+              <textarea
+                id="edit-notas"
+                value={editing.notas}
+                onChange={(e) => setEditing({ ...editing, notas: e.target.value })}
+                rows={3}
+              />
+            </label>
+          </div>
+          <div className="cta-row">
+            <button type="submit" className="btn btn--primary">
+              Salvar
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => setEditing(null)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       )}
     </main>
   );

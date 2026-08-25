@@ -11,32 +11,49 @@ export interface Prova {
   created_at: string;
 }
 
-const DEMO_USER = process.env.NEXT_PUBLIC_DEMO_USER || "demo";
-const DEMO_PASS = process.env.NEXT_PUBLIC_DEMO_PASS || ("demo" + "123");
+export interface ResumoDia {
+  dia: string;
+  timezone: string;
+  registradas: number;
+  conferidas: number;
+  recusadas: number;
+  total: number;
+}
 
-let cachedToken: string | null = null;
+const TOKEN_KEY = "bagagem_token";
 
-export async function ensureAuth(): Promise<string> {
-  if (cachedToken) return cachedToken;
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function logout(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export async function login(username: string, password: string): Promise<string> {
   const res = await fetch(`${API_URL}/api/v1/auth/demo`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: DEMO_USER, password: DEMO_PASS }),
+    body: JSON.stringify({ username, password }),
   });
-  if (!res.ok) throw new Error(`auth demo: ${res.status}`);
+  if (!res.ok) throw new Error("Usuário ou senha inválidos");
   const data = await res.json();
-  cachedToken = data.access_token as string;
-  return cachedToken;
+  const token = data.access_token as string;
+  sessionStorage.setItem(TOKEN_KEY, token);
+  return token;
 }
 
-function authHeaders(token: string): Record<string, string> {
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  if (!token) throw new Error("Faça login");
   return { Authorization: `Bearer ${token}` };
 }
 
+/** Leitura aberta — sem token e sem auto-login. */
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: authHeaders(await ensureAuth()),
-  });
+  const res = await fetch(`${API_URL}${path}`);
   if (!res.ok) throw new Error(`GET ${path}: ${res.status}`);
   return res.json();
 }
@@ -50,10 +67,24 @@ export async function apiSend<T>(
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(await ensureAuth().then(authHeaders)),
+      ...authHeaders(),
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    if (res.status === 401) logout();
+    throw new Error(await res.text());
+  }
   return res.json();
+}
+
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    if (res.status === 401) logout();
+    throw new Error(await res.text());
+  }
 }

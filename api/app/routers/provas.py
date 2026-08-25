@@ -2,21 +2,24 @@ from __future__ import annotations
 
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth import require_operador
 from app.config import get_settings
 from app.database import get_db
 from app.models import Prova
-from app.schemas import ProvaCreate, ProvaOut, StatusUpdate
+from app.schemas import ProvaCreate, ProvaOut, ProvaUpdate, ResumoDiaOut, StatusUpdate
 from app.storage import save_base64_image
 
 router = APIRouter(prefix="/api/v1/provas", tags=["provas"])
 
 ALLOWED_STATUS = {"registrada", "conferida", "recusada"}
+TZ_SP = ZoneInfo("America/Sao_Paulo")
 
 
 @router.post("", response_model=ProvaOut, status_code=201)
@@ -97,6 +100,33 @@ def listar_provas(
     return q.order_by(Prova.created_at.desc()).all()
 
 
+@router.get("/resumo", response_model=ResumoDiaOut)
+def resumo_dia(db: Session = Depends(get_db)):
+    agora_sp = datetime.now(TZ_SP)
+    dia_str = agora_sp.date().isoformat()
+    inicio_sp = datetime(agora_sp.year, agora_sp.month, agora_sp.day, tzinfo=TZ_SP)
+    fim_sp = inicio_sp + timedelta(days=1)
+    inicio_utc = inicio_sp.astimezone(timezone.utc)
+    fim_utc = fim_sp.astimezone(timezone.utc)
+
+    provas = (
+        db.query(Prova)
+        .filter(Prova.created_at >= inicio_utc, Prova.created_at < fim_utc)
+        .all()
+    )
+    registradas = sum(1 for p in provas if p.status == "registrada")
+    conferidas = sum(1 for p in provas if p.status == "conferida")
+    recusadas = sum(1 for p in provas if p.status == "recusada")
+    return ResumoDiaOut(
+        dia=dia_str,
+        timezone="America/Sao_Paulo",
+        registradas=registradas,
+        conferidas=conferidas,
+        recusadas=recusadas,
+        total=len(provas),
+    )
+
+
 @router.get("/por-codigo/{codigo}", response_model=ProvaOut)
 def por_codigo(codigo: str, db: Session = Depends(get_db)):
     prova = (
@@ -118,6 +148,31 @@ def obter_prova(prova_id: int, db: Session = Depends(get_db)):
     return prova
 
 
+@router.patch("/{prova_id}", response_model=ProvaOut)
+def atualizar_prova(
+    prova_id: int,
+    payload: ProvaUpdate,
+    db: Session = Depends(get_db),
+    _user: str = Depends(require_operador),
+):
+    prova = db.get(Prova, prova_id)
+    if not prova:
+        raise HTTPException(status_code=404, detail="prova não encontrada")
+    data = payload.model_dump(exclude_unset=True)
+    if "codigo" in data:
+        codigo = (data["codigo"] or "").strip()
+        if not codigo:
+            raise HTTPException(status_code=422, detail="codigo não pode ficar vazio")
+        prova.codigo = codigo.upper()
+    if "tipo_vinculo" in data and data["tipo_vinculo"] is not None:
+        prova.tipo_vinculo = data["tipo_vinculo"]
+    if "notas" in data:
+        prova.notas = data["notas"]
+    db.commit()
+    db.refresh(prova)
+    return prova
+
+
 @router.patch("/{prova_id}/status", response_model=ProvaOut)
 def atualizar_status(
     prova_id: int,
@@ -132,3 +187,24 @@ def atualizar_status(
     db.commit()
     db.refresh(prova)
     return prova
+
+
+@router.delete("/{prova_id}", status_code=204)
+def excluir_prova(
+    prova_id: int,
+    db: Session = Depends(get_db),
+    _user: str = Depends(require_operador),
+):
+    prova = db.get(Prova, prova_id)
+    if not prova:
+        raise HTTPException(status_code=404, detail="prova não encontrada")
+    settings = get_settings()
+    if prova.foto_storage:
+        path = os.path.join(settings.upload_dir, prova.foto_storage)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+    db.delete(prova)
+    db.commit()
+    return Response(status_code=204)
