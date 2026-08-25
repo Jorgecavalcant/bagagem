@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ThemeToggle from "./components/ThemeToggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,14 +9,17 @@ export const metadata: Metadata = {
     "Registre a foto da bagagem com o bilhete ou etiqueta — prova simples, pronta para conferir.",
 };
 
+const themeBoot = `(function(){try{var t=localStorage.getItem('bg_theme');if(t!=='light'&&t!=='dark')t='light';var d=document.documentElement;d.dataset.theme=t;d.style.colorScheme=t;}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -40,6 +44,9 @@ export default function RootLayout({
               <Link href="/">Início</Link>
               <Link href="/registrar">Registrar</Link>
               <Link href="/painel">Painel</Link>
+              <Link href="/login">Entrar</Link>
+              <Link href="/settings">Ajustes</Link>
+              <Link href="/dashboard">Dashboard</Link>
             </nav>
           </div>
         </header>
@@ -47,6 +54,7 @@ export default function RootLayout({
         <footer className="site-footer">
           Prova de viagem · etiqueta de confiança · Tech42
         </footer>
+        <ThemeToggle />
       </body>
     </html>
   );
