@@ -15,12 +15,15 @@
 - `POST /api/v1/provas` · `POST /api/v1/provas/upload`
 - `GET /api/v1/provas` · `GET /api/v1/provas/{id}` · `GET /api/v1/provas/por-codigo/{codigo}`
 - `PATCH /api/v1/provas/{id}/status` — registrada|conferida|recusada
+- `PATCH /api/v1/provas/{id}` — codigo, tipo_vinculo, notas
+- `DELETE /api/v1/provas/{id}` — remove registro + mídia
+- `GET /api/v1/provas/resumo` — contagem do dia (America/Sao_Paulo)
 - Static `/media` e `/api/media` → upload_dir
 - Payments ManualProvider (fora do foco deste salto)
 
 ### Web
-- `/` landing · `/registrar` · `/painel` (lista + conferir/recusar + thumb)
-- Front hoje: `ensureAuth()` invisível em toda chamada
+- `/` landing · `/registrar` (+ `?codigo=`) · `/painel` (login explícito + CRUD + resumo)
+- Front: token só após login visível (`sessionStorage.bagagem_token`) — sem auto-login
 
 ---
 
