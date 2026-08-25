@@ -522,3 +522,46 @@ table.data .code {
     transition: none !important;
   }
 }
+
+/* ---- dark theme (noite / conferência) ---- */
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+
+[data-theme="dark"] {
+  --color-bg: #121722;
+  --color-surface: #1B2230;
+  --color-brand: #E8ECF4;
+  --color-accent: #E05252;
+  --color-accent-hover: #F06666;
+  --color-text: #E8ECF4;
+  --color-muted: #9AA3B5;
+  --color-on-brand: #121722;
+  --color-border: #2C3548;
+  --color-success: #3DCF7A;
+  --color-error: #F07868;
+  --color-disabled: #6B7384;
+  --color-ring: #E05252;
+  --color-on-accent: #FFFFFF;
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --ink: var(--color-text);
+  --muted: var(--color-muted);
+  --line: var(--color-border);
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --ok: var(--color-success);
+  --danger: var(--color-error);
+  --shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+
+.theme-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius-btn);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
