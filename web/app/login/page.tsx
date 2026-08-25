@@ -88,7 +88,6 @@ function LoginForm() {
       </div>
 
       <p style={{ marginTop: "1rem" }}>
-        Não tem conta? <Link href="/registrar">Cadastre-se</Link> ·{" "}
         <Link href="/">Voltar ao início</Link>
       </p>
     </main>

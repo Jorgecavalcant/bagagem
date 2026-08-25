@@ -4,24 +4,16 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getToken, logout } from "../../lib/api";
-
-type Settings = {
-  pontoNome: string;
-  mensagemRodape: string;
-  timezone: string;
-};
-
-const STORAGE_KEY = "bg_settings";
-
-const DEFAULTS: Settings = {
-  pontoNome: "",
-  mensagemRodape: "",
-  timezone: "America/Sao_Paulo",
-};
+import {
+  PontoSettings,
+  SETTINGS_DEFAULTS,
+  SETTINGS_STORAGE_KEY,
+  readPontoSettings,
+} from "../../lib/settings";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<Settings>(DEFAULTS);
+  const [settings, setSettings] = useState<PontoSettings>(SETTINGS_DEFAULTS);
   const [salvo, setSalvo] = useState(false);
 
   useEffect(() => {
@@ -29,25 +21,23 @@ export default function SettingsPage() {
       router.replace("/login?next=/settings");
       return;
     }
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setSettings({ ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) });
-      }
-    } catch {
-      // ignora dados corrompidos e usa os padrões
-    }
+    setSettings(readPontoSettings());
   }, [router]);
 
-  function onChange<K extends keyof Settings>(key: K, value: Settings[K]) {
+  function onChange<K extends keyof PontoSettings>(key: K, value: PontoSettings[K]) {
     setSalvo(false);
     setSettings((s) => ({ ...s, [key]: value }));
   }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     setSalvo(true);
+  }
+
+  function handleLogout() {
+    logout();
+    router.replace("/login");
   }
 
   if (!getToken()) return null;
@@ -57,6 +47,9 @@ export default function SettingsPage() {
       <section className="hero">
         <h1>Configurações</h1>
         <p className="lead">Ajuste como o sistema se comporta no seu ponto de atendimento.</p>
+        <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
+          Estes ajustes ficam salvos só neste navegador e aparecem no cabeçalho e no rodapé das telas.
+        </p>
       </section>
 
       {salvo && (
@@ -114,7 +107,7 @@ export default function SettingsPage() {
 
       <hr style={{ margin: "2rem 0" }} />
 
-      <button type="button" className="btn btn--secondary" onClick={() => logout()}>
+      <button type="button" className="btn btn--secondary" onClick={handleLogout}>
         Sair da conta
       </button>
 
